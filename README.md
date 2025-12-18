@@ -7,6 +7,7 @@ Production-ready async web scraper that converts websites to LLM-optimized markd
 - **Fast async crawling** - Uses aiohttp with configurable concurrency (default: 5 concurrent requests)
 - **Browser mode** - Optional Playwright support for JavaScript-rendered content
 - **Smart filtering** - Only crawls pages on the same domain/subdomain
+- **Regex URL filtering** - Include/exclude URLs with custom regex patterns
 - **LLM-optimized output** - Strips navigation, footers, ads, and other non-content elements
 - **Real-time visualization** - Rich CLI with live progress tree and stats
 - **Flexible output** - Individual markdown files per page + single merged file
