@@ -48,11 +48,33 @@ python -m web_context_builder https://spa-app.com --browser
 | `--delay` | Delay between requests (seconds) | `0.1` |
 | `--timeout` | Request timeout (seconds) | `30` |
 | `--cross-subdomain` | Allow crawling across subdomains | same subdomain only |
+| `-i, --include` | Regex pattern for URLs to include (repeatable) | all URLs |
+| `-e, --exclude` | Regex pattern for URLs to exclude (repeatable) | none |
 | `--no-progress` | Disable live visualization | enabled |
 | `--no-merge` | Skip creating merged file | merge enabled |
 | `-m, --merged-name` | Custom merged filename | `<domain>.md` |
 | `--browser` | Use headless browser for JS content | disabled |
 | `--browser-visible` | Show browser window (for debugging) | headless |
+
+## URL Filtering with Regex
+
+Use `-i/--include` and `-e/--exclude` for fine-grained control over which URLs to crawl:
+
+```bash
+# Only crawl URLs containing /api/ or /guide/
+python -m web_context_builder https://docs.example.com -i '/api/' -i '/guide/'
+
+# Exclude blog and changelog sections
+python -m web_context_builder https://docs.example.com -e '/blog/' -e '/changelog/'
+
+# Combine: only API docs, but exclude deprecated endpoints
+python -m web_context_builder https://docs.example.com -i '/api/' -e '/api/v1/' -e '/deprecated/'
+
+# Use full regex power
+python -m web_context_builder https://docs.example.com -i '/docs/.*tutorial' -e '\?.*page='
+```
+
+**Note:** When include patterns are specified, the domain/subdomain restriction is bypassed - only the regex patterns determine what gets crawled.
 
 ## Output
 

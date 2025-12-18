@@ -35,10 +35,22 @@ class WebCrawler:
         self._root_extract = tldextract.extract(config.root_url)
         self._root_parsed = urlparse(config.root_url)
 
-        # Compile exclude patterns
-        self._exclude_patterns = [
+        # Compile file extension exclude patterns
+        self._exclude_extensions = [
             re.compile(pattern, re.IGNORECASE)
-            for pattern in config.exclude_patterns
+            for pattern in config.exclude_extensions
+        ]
+
+        # Compile custom URL include patterns (if any, URL must match at least one)
+        self._url_include_patterns = [
+            re.compile(pattern, re.IGNORECASE)
+            for pattern in config.url_include_patterns
+        ] if config.url_include_patterns else []
+
+        # Compile custom URL exclude patterns
+        self._url_exclude_patterns = [
+            re.compile(pattern, re.IGNORECASE)
+            for pattern in config.url_exclude_patterns
         ]
 
         # Semaphore for concurrent requests
@@ -95,13 +107,23 @@ class WebCrawler:
         if not url.startswith(("http://", "https://")):
             return False
 
-        # Must be same domain
-        if not self._is_same_domain(url):
+        # Must be same domain (unless custom include patterns override)
+        if not self._url_include_patterns and not self._is_same_domain(url):
             return False
 
-        # Check exclude patterns
-        for pattern in self._exclude_patterns:
-            if pattern.match(url):
+        # Check file extension exclude patterns
+        for pattern in self._exclude_extensions:
+            if pattern.search(url):
+                return False
+
+        # Check custom URL exclude patterns
+        for pattern in self._url_exclude_patterns:
+            if pattern.search(url):
+                return False
+
+        # If include patterns specified, URL must match at least one
+        if self._url_include_patterns:
+            if not any(pattern.search(url) for pattern in self._url_include_patterns):
                 return False
 
         return True

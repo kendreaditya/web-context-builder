@@ -95,6 +95,20 @@ def print_banner() -> None:
     default=False,
     help="Show browser window when using --browser (for debugging)",
 )
+@click.option(
+    "-i",
+    "--include",
+    "include_patterns",
+    multiple=True,
+    help="Regex pattern for URLs to include (can be used multiple times). If specified, only matching URLs are crawled.",
+)
+@click.option(
+    "-e",
+    "--exclude",
+    "exclude_patterns",
+    multiple=True,
+    help="Regex pattern for URLs to exclude (can be used multiple times). Matching URLs are skipped.",
+)
 @click.version_option(version=__version__)
 def main(
     url: str,
@@ -109,6 +123,8 @@ def main(
     merged_name: str | None,
     browser: bool,
     browser_visible: bool,
+    include_patterns: tuple[str, ...],
+    exclude_patterns: tuple[str, ...],
 ) -> None:
     """Web Context Builder - Scrape websites to LLM-optimized markdown.
 
@@ -124,6 +140,10 @@ def main(
         wcb https://docs.example.com --cross-subdomain
 
         wcb https://js-heavy-site.com --browser
+
+        wcb https://docs.example.com -i '/api/' -i '/guide/'
+
+        wcb https://docs.example.com -e '/blog/' -e '/changelog/'
 
     """
     print_banner()
@@ -155,12 +175,18 @@ def main(
         merged_filename=merged_name,
         use_browser=browser,
         browser_headless=not browser_visible,
+        url_include_patterns=list(include_patterns),
+        url_exclude_patterns=list(exclude_patterns),
     )
 
     console.print(f"[bold]Starting crawl:[/bold] {url}")
     console.print(f"[dim]Output directory: {config.output_dir.absolute()}[/dim]")
     console.print(f"[dim]Max concurrent: {concurrent} | Max depth: {depth or 'unlimited'}[/dim]")
     console.print(f"[dim]Subdomain restriction: {'Same subdomain only' if not cross_subdomain else 'Cross-subdomain allowed'}[/dim]")
+    if include_patterns:
+        console.print(f"[dim]Include patterns: {', '.join(include_patterns)}[/dim]")
+    if exclude_patterns:
+        console.print(f"[dim]Exclude patterns: {', '.join(exclude_patterns)}[/dim]")
     if browser:
         console.print(f"[dim]Browser mode: {'visible' if browser_visible else 'headless'}[/dim]")
     console.print()

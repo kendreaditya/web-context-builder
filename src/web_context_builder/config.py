@@ -43,12 +43,16 @@ class CrawlerConfig:
     # URL filtering
     stay_on_subdomain: bool = True  # Only crawl same subdomain
 
+    # Custom URL filtering (regex patterns)
+    url_include_patterns: list[str] = field(default_factory=list)  # URLs must match at least one (if specified)
+    url_exclude_patterns: list[str] = field(default_factory=list)  # URLs matching any are excluded
+
     # Output configuration
     output_dir: Path = field(default_factory=lambda: Path("./output"))
     merged_filename: Optional[str] = None  # Auto-generated from URL if None
 
-    # Content filtering
-    exclude_patterns: list[str] = field(default_factory=lambda: [
+    # File extension filtering (applied by default)
+    exclude_extensions: list[str] = field(default_factory=lambda: [
         r".*\.(pdf|zip|tar|gz|exe|dmg|pkg|deb|rpm)$",
         r".*\.(png|jpg|jpeg|gif|svg|ico|webp)$",
         r".*\.(css|js|woff|woff2|ttf|eot)$",
