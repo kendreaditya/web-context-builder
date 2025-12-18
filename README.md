@@ -5,6 +5,7 @@ Production-ready async web scraper that converts websites to LLM-optimized markd
 ## Features
 
 - **Fast async crawling** - Uses aiohttp with configurable concurrency (default: 5 concurrent requests)
+- **Browser mode** - Optional Playwright support for JavaScript-rendered content
 - **Smart filtering** - Only crawls pages on the same domain/subdomain
 - **LLM-optimized output** - Strips navigation, footers, ads, and other non-content elements
 - **Real-time visualization** - Rich CLI with live progress tree and stats
@@ -13,7 +14,12 @@ Production-ready async web scraper that converts websites to LLM-optimized markd
 ## Installation
 
 ```bash
+# Basic installation (static HTML only)
 pip install -e .
+
+# With browser support (for JS-rendered sites)
+pip install -e ".[browser]"
+playwright install chromium
 ```
 
 ## Usage
@@ -27,6 +33,9 @@ python -m web_context_builder https://docs.example.com -o ./output -d 3 -c 5
 
 # Crawl across subdomains
 python -m web_context_builder https://docs.example.com --cross-subdomain
+
+# For JavaScript-heavy sites (requires browser extra)
+python -m web_context_builder https://spa-app.com --browser
 ```
 
 ## CLI Options
@@ -42,6 +51,8 @@ python -m web_context_builder https://docs.example.com --cross-subdomain
 | `--no-progress` | Disable live visualization | enabled |
 | `--no-merge` | Skip creating merged file | merge enabled |
 | `-m, --merged-name` | Custom merged filename | `<domain>.md` |
+| `--browser` | Use headless browser for JS content | disabled |
+| `--browser-visible` | Show browser window (for debugging) | headless |
 
 ## Output
 

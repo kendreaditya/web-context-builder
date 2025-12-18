@@ -2,7 +2,7 @@
 
 import asyncio
 import re
-from typing import Optional, Set
+from typing import TYPE_CHECKING, Optional, Set
 from urllib.parse import urljoin, urlparse
 
 import aiohttp
@@ -14,6 +14,9 @@ from .parser import html_to_markdown
 from .storage import StorageManager
 from .visualizer import CrawlerVisualizer, PageStatus
 
+if TYPE_CHECKING:
+    from .browser import BrowserFetcher
+
 
 class WebCrawler:
     """Production-ready async web crawler."""
@@ -22,6 +25,7 @@ class WebCrawler:
         self.config = config
         self.storage = StorageManager(config.output_dir, config.merged_filename)
         self.visualizer: Optional[CrawlerVisualizer] = None
+        self._browser: Optional["BrowserFetcher"] = None
 
         # URL tracking
         self._seen_urls: Set[str] = set()
@@ -164,9 +168,26 @@ class WebCrawler:
 
         return None
 
+    async def _fetch_page_browser(self, url: str) -> Optional[str]:
+        """Fetch a page using the browser (for JS-rendered content)."""
+        if not self._browser:
+            return None
+
+        for attempt in range(self.config.max_retries):
+            try:
+                html = await self._browser.fetch(url)
+                if html:
+                    return html
+            except Exception:
+                if attempt < self.config.max_retries - 1:
+                    await asyncio.sleep(2**attempt)
+                continue
+
+        return None
+
     async def _process_page(
         self,
-        session: aiohttp.ClientSession,
+        session: Optional[aiohttp.ClientSession],
         url: str,
         depth: int,
         parent_url: Optional[str],
@@ -178,8 +199,11 @@ class WebCrawler:
                 await self.visualizer.update_page(url, PageStatus.CRAWLING)
 
             try:
-                # Fetch the page
-                html = await self._fetch_page(session, url)
+                # Fetch the page (browser or HTTP)
+                if self.config.use_browser:
+                    html = await self._fetch_page_browser(url)
+                else:
+                    html = await self._fetch_page(session, url)
 
                 if html is None:
                     if self.visualizer:
@@ -242,7 +266,7 @@ class WebCrawler:
         await self._queue.put((url, depth, parent_url))
         return True
 
-    async def _worker(self, session: aiohttp.ClientSession) -> None:
+    async def _worker(self, session: Optional[aiohttp.ClientSession]) -> None:
         """Worker coroutine that processes URLs from the queue."""
         while True:
             try:
@@ -294,28 +318,53 @@ class WebCrawler:
         normalized_root = self._normalize_url(self.config.root_url)
         await self._maybe_queue_url(normalized_root, 0, None)
 
-        # Create HTTP session
-        connector = aiohttp.TCPConnector(limit=self.config.max_concurrent * 2)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            # Start workers
-            workers = [
-                asyncio.create_task(self._worker(session))
-                for _ in range(self.config.max_concurrent)
-            ]
+        # Initialize browser if needed
+        if self.config.use_browser:
+            from .browser import BrowserFetcher
 
-            # Wait for queue to be processed
-            await self._queue.join()
+            self._browser = BrowserFetcher(
+                headless=self.config.browser_headless,
+                timeout=self.config.request_timeout * 1000,  # Convert to ms
+            )
+            await self._browser.start()
 
-            # Cancel workers
-            for worker in workers:
-                worker.cancel()
+        try:
+            if self.config.use_browser:
+                # Browser mode: no HTTP session needed
+                workers = [
+                    asyncio.create_task(self._worker(None))
+                    for _ in range(self.config.max_concurrent)
+                ]
 
-            await asyncio.gather(*workers, return_exceptions=True)
+                await self._queue.join()
 
-        # Stop visualizer
-        if self.visualizer:
-            await self.visualizer.stop()
-            await self.visualizer.print_summary()
+                for worker in workers:
+                    worker.cancel()
+                await asyncio.gather(*workers, return_exceptions=True)
+            else:
+                # HTTP mode: use aiohttp session
+                connector = aiohttp.TCPConnector(limit=self.config.max_concurrent * 2)
+                async with aiohttp.ClientSession(connector=connector) as session:
+                    workers = [
+                        asyncio.create_task(self._worker(session))
+                        for _ in range(self.config.max_concurrent)
+                    ]
+
+                    await self._queue.join()
+
+                    for worker in workers:
+                        worker.cancel()
+                    await asyncio.gather(*workers, return_exceptions=True)
+
+        finally:
+            # Stop browser if started
+            if self._browser:
+                await self._browser.stop()
+
+            # Stop visualizer
+            if self.visualizer:
+                await self.visualizer.stop()
+                await self.visualizer.print_summary()
 
         return self.storage.saved_count
 

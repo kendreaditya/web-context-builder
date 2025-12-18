@@ -83,6 +83,18 @@ def print_banner() -> None:
     default=None,
     help="Name of the merged output file (default: <domain>.md)",
 )
+@click.option(
+    "--browser",
+    is_flag=True,
+    default=False,
+    help="Use headless browser for JS-rendered content (requires: pip install 'web-context-builder[browser]')",
+)
+@click.option(
+    "--browser-visible",
+    is_flag=True,
+    default=False,
+    help="Show browser window when using --browser (for debugging)",
+)
 @click.version_option(version=__version__)
 def main(
     url: str,
@@ -95,6 +107,8 @@ def main(
     no_progress: bool,
     no_merge: bool,
     merged_name: str | None,
+    browser: bool,
+    browser_visible: bool,
 ) -> None:
     """Web Context Builder - Scrape websites to LLM-optimized markdown.
 
@@ -109,8 +123,21 @@ def main(
 
         wcb https://docs.example.com --cross-subdomain
 
+        wcb https://js-heavy-site.com --browser
+
     """
     print_banner()
+
+    # Check browser availability if requested
+    if browser:
+        from .browser import check_playwright_available
+
+        if not check_playwright_available():
+            console.print("[red]Error: Playwright is not installed.[/red]")
+            console.print("[yellow]Install it with:[/yellow]")
+            console.print("  pip install 'web-context-builder[browser]'")
+            console.print("  playwright install chromium")
+            sys.exit(1)
 
     # Validate URL
     if not url.startswith(("http://", "https://")):
@@ -126,12 +153,16 @@ def main(
         request_timeout=timeout,
         stay_on_subdomain=not cross_subdomain,
         merged_filename=merged_name,
+        use_browser=browser,
+        browser_headless=not browser_visible,
     )
 
     console.print(f"[bold]Starting crawl:[/bold] {url}")
     console.print(f"[dim]Output directory: {config.output_dir.absolute()}[/dim]")
     console.print(f"[dim]Max concurrent: {concurrent} | Max depth: {depth or 'unlimited'}[/dim]")
     console.print(f"[dim]Subdomain restriction: {'Same subdomain only' if not cross_subdomain else 'Cross-subdomain allowed'}[/dim]")
+    if browser:
+        console.print(f"[dim]Browser mode: {'visible' if browser_visible else 'headless'}[/dim]")
     console.print()
 
     # Run the crawler

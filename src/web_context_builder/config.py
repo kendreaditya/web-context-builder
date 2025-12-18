@@ -58,6 +58,10 @@ class CrawlerConfig:
     # User agent
     user_agent: str = "WebContextBuilder/1.0 (LLM Context Scraper)"
 
+    # Browser mode (for JS-rendered content)
+    use_browser: bool = False
+    browser_headless: bool = True
+
     def __post_init__(self) -> None:
         """Validate and normalize configuration."""
         if isinstance(self.output_dir, str):
