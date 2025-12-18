@@ -2,6 +2,8 @@
 
 Production-ready async web scraper that converts websites to LLM-optimized markdown.
 
+![Web Context Builder CLI](assets/screenshot.png)
+
 ## Features
 
 - **Fast async crawling** - Uses aiohttp with configurable concurrency (default: 5 concurrent requests)
