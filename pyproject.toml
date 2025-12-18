@@ -1,0 +1,42 @@
+[project]
+name = "web-context-builder"
+version = "1.0.0"
+description = "Production-ready async web scraper that converts websites to LLM-optimized markdown"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "aiohttp>=3.9.0",
+    "beautifulsoup4>=4.12.0",
+    "rich>=13.7.0",
+    "markdownify>=0.12.0",
+    "lxml>=5.0.0",
+    "aiofiles>=23.2.0",
+    "click>=8.1.0",
+    "tldextract>=5.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "black>=24.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+wcb = "web_context_builder.cli:main"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "W"]
