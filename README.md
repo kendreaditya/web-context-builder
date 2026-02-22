@@ -1,5 +1,9 @@
 # Web Context Builder
 
+> **This project has moved.** It now lives as a single-file script (`wcb`) in [kendreaditya/.config](https://github.com/kendreaditya/.config/blob/main/scripts/wcb). This repo is archived.
+
+---
+
 Production-ready async web scraper that converts websites to LLM-optimized markdown.
 
 ![Web Context Builder CLI](assets/screenshot.png)
